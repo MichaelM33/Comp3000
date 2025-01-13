@@ -1,0 +1,17 @@
+<div class="chat-header">
+    <h2>{{ contact_username }}</h2> <!-- Display the contact's name at the top -->
+</div>
+<div class="chat-history">
+    {% for chat in chat_history %}
+    <div class="chat-message-container {% if chat.sender == session['username'] %}sent{% else %}received{% endif %}">
+        {% if chat.sender != session['username'] %}
+        <img src="{% if contact_profile_pic_id %}{{ url_for('profile_pic', pic_id=contact_profile_pic_id) }}{% else %}{{ url_for('static', filename='default.jpg') }}{% endif %}" 
+             alt="{{ contact_username }}'s profile picture" class="chat-profile-pic">
+        {% endif %}
+        <div class="chat-message {% if chat.sender == session['username'] %}sent{% else %}received{% endif %}">
+            <p>{{ chat.message }}</p>
+            <span class="timestamp">{{ chat.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>

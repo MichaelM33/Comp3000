@@ -1,0 +1,98 @@
+<!--chat.html!-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with {{ contact_username }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='chat.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Chat with {{ contact_username }}</h1>
+
+        <!-- Chat history -->
+        <div class="chat-history">
+            {% for chat in chat_history %}
+                <div class="chat-message {% if chat.sender == session['username'] %}sent{% else %}received{% endif %}">
+                    <p><strong>{{ chat.sender }}:</strong> {{ chat.message }}</p>
+                    <span class="timestamp">{{ chat.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</span>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- New message form -->
+        <form class="chat-form">
+            <input type="text" name="message" placeholder="Type your message..." required autocomplete="off">
+            <button type="submit">Send</button>
+        </form>
+
+        <p><a href="{{ url_for('home') }}">Back to Home</a></p>
+    </div>
+
+    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+    <script>
+        const socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+    
+        const contactUsername = "{{ contact_username }}";
+        const currentUser = "{{ session['username'] }}";
+    
+        // Join the chat room for real-time updates
+        socket.emit('join_room', { contact_username: contactUsername });
+        socket.emit('read_receipt', { sender: contactUsername });
+    
+        // Handle form submission to send a message
+        document.querySelector('.chat-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const messageInput = document.querySelector('input[name="message"]');
+            const message = messageInput.value.trim();
+    
+            if (message) {
+                socket.emit('send_message', {
+                    receiver: contactUsername,
+                    message: message
+                });
+                messageInput.value = '';  // Clear the input field
+            }
+        });
+    
+        // Handle send button click (Fix for send button not working)
+        document.querySelector('.chat-form button').addEventListener('click', function() {
+            document.querySelector('.chat-form').dispatchEvent(new Event('submit'));
+        });
+    
+        // Receive and display messages in real-time
+        socket.on('receive_message', function(data) {
+            const chatHistory = document.querySelector('.chat-history');
+    
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('chat-message');
+            if (data.sender === currentUser) {
+                messageElement.classList.add('sent');
+            } else {
+                messageElement.classList.add('received');
+            }
+            messageElement.innerHTML = `
+                <p><strong>${data.sender}:</strong> ${data.message}</p>
+                <span class="timestamp">${data.timestamp}</span>
+            `;
+    
+            chatHistory.appendChild(messageElement);
+            chatHistory.scrollTop = chatHistory.scrollHeight;  // Scroll to the bottom
+        });
+
+    
+        socket.on('message_read', function(data) {
+            const chatMessages = document.querySelectorAll('.chat-message.sent');
+            chatMessages.forEach(message => {
+                if (!message.classList.contains('read')) {
+                    message.classList.add('read');
+                    message.innerHTML += '<span class="read-receipt">Read</span>';
+                }
+            });
+        });
+
+    </script>
+    
+</body>
+</html>

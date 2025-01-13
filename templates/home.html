@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App - Home</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <ul>
+            <li><a href="{{ url_for('home') }}">Home</a></li>
+            <li><a href="{{ url_for('requests') }}">Requests</a></li>
+            <li><a href="{{ url_for('search') }}">Search</a></li>
+            <li><a href="{{ url_for('profile') }}">Profile</a></li>
+            <li><a href="{{ url_for('logout') }}">Logout</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <!-- Sidebar for contacts -->
+        <div class="chat-sidebar">
+            <!-- Profile Section -->
+            <div class="profile-section">
+                {% if profile_pic_id %}
+                <img src="{{ url_for('profile_pic', pic_id=profile_pic_id) }}" alt="Your profile picture" class="profile-icon">
+                {% else %}
+                <img src="{{ url_for('static', filename='default.jpg') }}" alt="Default profile picture" class="profile-icon">
+                {% endif %}
+                <span class="profile-name">{{ username }}</span>
+            </div>
+
+            <h2>Contacts</h2>
+            <ul>
+                {% for contact in contacts %}
+                <li class="contact-item">
+                    {% if contact.profile_pic_id %}
+                    <img src="{{ url_for('profile_pic', pic_id=contact.profile_pic_id) }}" alt="{{ contact.username }}'s profile picture" class="contact-profile-pic">
+                    {% else %}
+                    <img src="{{ url_for('static', filename='default.jpg') }}" alt="Default profile picture" class="contact-profile-pic">
+                    {% endif %}
+                    <a href="#" class="chat-link" data-username="{{ contact.username }}">{{ contact.username }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Main chat section -->
+        <div class="chat-main">
+            <div id="chat-content">
+                <h2>Select a contact to start chatting</h2>
+            </div>
+            <div class="chat-form-container">
+                <form id="message-form">
+                    <input type="text" id="message-input" placeholder="Type your message..." required>
+                    <button type="submit">Send</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+    <script>
+        const chatLinks = document.querySelectorAll('.chat-link');
+        const chatContent = document.getElementById('chat-content');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+        let currentChatUsername = null;
+
+        // Initialize WebSocket connection
+        const socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+
+        // Function to load chat dynamically and join the room
+        function loadChat(username) {
+            currentChatUsername = username;
+
+            // Join the chat room for real-time communication
+            socket.emit('join_room', { contact_username: username });
+
+            // Load chat via AJAX
+            fetch(`/chat/${username}`)
+                .then(response => response.text())
+                .then(html => {
+                    chatContent.innerHTML = html;
+                    scrollToBottom();
+                })
+                .catch(err => console.error('Error loading chat:', err));
+        }
+
+        // Attach click event listeners to chat links
+        chatLinks.forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                const username = this.dataset.username;
+                loadChat(username);
+            });
+        });
+
+        // Handle message form submission
+        messageForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+
+            if (message && currentChatUsername) {
+                // Emit message via WebSocket
+                socket.emit('send_message', {
+                    receiver: currentChatUsername,
+                    message: message
+                });
+                messageInput.value = ''; // Clear the input field
+
+                // Append the sent message to the chat history
+                appendMessage(message, 'sent');
+                scrollToBottom();
+            }
+        });
+
+        // Function to append a new message to the chat history
+        function appendMessage(message, type) {
+            const chatHistory = document.querySelector('.chat-history');
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('chat-message', type);
+            messageElement.innerHTML = `
+                <p>${message}</p>
+                <span class="timestamp">${new Date().toLocaleString()}</span>
+            `;
+            chatHistory.appendChild(messageElement);
+        }
+
+        // Function to scroll chat to the bottom
+        function scrollToBottom() {
+            const chatHistory = document.querySelector('.chat-history');
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        // Handle incoming messages via WebSocket
+        socket.on('receive_message', function (data) {
+            if (data.sender === currentChatUsername) {
+                appendMessage(data.message, 'received');
+                scrollToBottom();
+            }
+        });
+    </script>
+</body>
+</html>
