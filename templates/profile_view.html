@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - {{ user.username }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='profile.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Profile: {{ user.username }}</h1>
+
+        <!-- Display profile picture -->
+        {% if profile_pic_id %}
+        <img src="{{ url_for('profile_pic', pic_id=profile_pic_id) }}" alt="Profile Picture" class="profile-pic">
+        {% else %}
+        <img src="{{ url_for('static', filename='default.jpg') }}" alt="Default Profile Picture" class="profile-pic">
+        {% endif %}
+
+        <p><strong>Username:</strong> {{ user.username }}</p>
+        <p><strong>Joined:</strong> {{ user.created_at.strftime('%B %d, %Y') }}</p>
+
+        <!-- Remove Contact Button -->
+        {% if is_contact %}
+        <button id="remove-contact-btn" data-username="{{ user.username }}">Remove Contact</button>
+        {% endif %}
+
+        <p><a href="{{ url_for('home') }}">Back to Home</a></p>
+    </div>
+
+    <script>
+        // Handle Remove Contact button click
+        const removeContactBtn = document.getElementById('remove-contact-btn');
+        if (removeContactBtn) {
+            removeContactBtn.addEventListener('click', function () {
+                const usernameToRemove = this.dataset.username;
+
+                if (confirm(`Are you sure you want to remove ${usernameToRemove} from your contacts?`)) {
+                    // Send request to the server to remove the contact
+                    fetch(`/remove_contact/${usernameToRemove}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert(`${usernameToRemove} has been removed from your contacts.`);
+                            window.location.href = "{{ url_for('home') }}"; // Redirect to home
+                        } else {
+                            alert(`Failed to remove ${usernameToRemove}. Please try again.`);
+                        }
+                    })
+                    .catch(err => console.error('Error removing contact:', err));
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -239,3 +239,108 @@ body {
     color: #a1a1a1;
     margin-top: 4px;
 }
+
+.warning-box {
+    color: red;
+    margin-bottom: 10px;
+    font-size: 0.9em;
+}
+
+/* Contact Item Layout */
+.contact-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: 8px;
+    transition: background-color 0.3s;
+    cursor: pointer;
+    background-color: #1e1e1e;
+    margin-bottom: 10px;
+}
+
+.contact-item:hover {
+    background-color: #333;
+}
+
+/* Profile Picture and Name Container */
+.contact-info {
+    display: flex;
+    align-items: center;
+}
+
+/* Profile Picture */
+.contact-profile-pic {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 10px;
+    border: 1px solid #555;
+    object-fit: cover;
+}
+
+/* Contact Name Link */
+.chat-link {
+    text-decoration: none;
+    color: #e1e1e1;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+/* Remove Contact Button */
+.remove-contact-btn {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 8px;
+    background-color: #ff4d4d;
+    color: white;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+/* Hover effect for Remove Contact Button */
+.remove-contact-btn:hover {
+    background-color: #e60000;
+}
+
+/* Profile Button */
+.profile-btn {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 8px;
+    background-color: #007aff;
+    color: white;
+    font-size: 0.9em;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.profile-btn:hover {
+    background-color: #005bb5;
+}
+
+/* Contact Info */
+.contact-info {
+    display: flex;
+    align-items: center;
+}
+
+/* Contact Details */
+.contact-details {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Last Message */
+.last-message {
+    font-size: 0.9em;
+    color: #a1a1a1;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
+}
+

@@ -9,7 +9,7 @@ import gridfs
 from bson.objectid import ObjectId
 import urllib.parse
 from datetime import datetime, timedelta
-
+import joblib
 
 
 # Initialize Flask app
@@ -126,7 +126,6 @@ def home():
         return redirect(url_for('login'))
 
     profile_pic_id = user.get("profile_pic_id")
-
     contact_usernames = user.get("contacts", [])
     contacts = []
 
@@ -136,9 +135,20 @@ def home():
             {"_id": 0, "username": 1, "status": 1, "profile_pic_id": 1}
         )
         if contact:
+            # Retrieve the last message exchanged with this contact
+            last_message = chats_collection.find_one(
+                {"$or": [
+                    {"sender": username, "receiver": contact_username},
+                    {"sender": contact_username, "receiver": username}
+                ]},
+                sort=[("timestamp", -1)]  # Sort by timestamp in descending order
+            )
+
+            contact['last_message'] = last_message['message'] if last_message else "No messages yet"
             contacts.append(contact)
 
     return render_template('home.html', username=username, profile_pic_id=profile_pic_id, contacts=contacts)
+
 
 @app.route('/profile', methods=['GET', 'POST'])
 def profile():
@@ -172,6 +182,33 @@ def profile():
     profile_pic_id = user.get("profile_pic_id", None)
 
     return render_template('profile.html', username=username, profile_pic_id=profile_pic_id)
+
+@app.route('/profile/<string:username>')
+def view_profile(username):
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    current_user = session['username']
+
+    # Find the profile user by username
+    user = users_collection.find_one({"username": username}, {"_id": 0, "username": 1, "profile_pic_id": 1, "created_at": 1})
+
+    if user is None:
+        flash(f"User '{username}' not found.", 'danger')
+        return redirect(url_for('home'))
+
+    # Check if the current user is friends with the profile user
+    is_friend = users_collection.find_one({"username": current_user, "contacts": username}) is not None
+
+    if not is_friend and current_user != username:  # Allow self-profile access
+        flash("You can only view profiles of your friends.", 'danger')
+        return redirect(url_for('home'))
+
+    profile_pic_id = user.get("profile_pic_id")
+
+    return render_template('profile_view.html', user=user, profile_pic_id=profile_pic_id, is_contact=is_friend)
+
+
 
 @app.route('/profile_pic/<string:pic_id>')
 def profile_pic(pic_id):
@@ -284,6 +321,28 @@ def accept_request(requester_username):
     return redirect(url_for('requests'))
 
 
+@app.route('/remove_contact/<string:contact_username>', methods=['POST'])
+def remove_contact(contact_username):
+    if 'username' not in session:
+        return jsonify({'success': False, 'message': 'User not logged in'})
+
+    current_user = session['username']
+
+    # Remove the contact from the user's contact list
+    users_collection.update_one(
+        {"username": current_user},
+        {"$pull": {"contacts": contact_username}}
+    )
+
+    # Also remove the current user from the contact's list
+    users_collection.update_one(
+        {"username": contact_username},
+        {"$pull": {"contacts": current_user}}
+    )
+
+    return jsonify({'success': True, 'message': f'Contact {contact_username} removed successfully'})
+
+
 @app.route('/chat/<string:contact_username>')
 def chat(contact_username):
     if 'username' not in session:
@@ -370,6 +429,10 @@ def handle_join_room(data):
 
 
 
+# Load the pre-trained model and vectorizer for toxic message detection
+model = joblib.load('bad_word_detector_model.pkl')
+tfidf_vectorizer = joblib.load('tfidf_vectorizer.pkl')
+
 
 
 @socketio.on('send_message')
@@ -378,10 +441,18 @@ def handle_send_message(data):
     receiver = data['receiver']
     message = data['message']
 
+    # Filter message using the model
+    message_tfidf = tfidf_vectorizer.transform([message])
+    prediction = model.predict(message_tfidf)[0]
+
+    if prediction == 1:  # Toxic message detected
+        emit('toxic_warning', {'warning': 'Your message may be considered toxic. Please rephrase.'}, room=request.sid)
+        return  # Do not broadcast the message
+
     # Create a unique room name by combining usernames
     room = f"chat_{min(sender, receiver)}_{max(sender, receiver)}"
 
-    # Save the message to the database with delivered status
+    # Save the message to the database
     chat_document = {
         "sender": sender,
         "receiver": receiver,
@@ -392,12 +463,15 @@ def handle_send_message(data):
     }
     chats_collection.insert_one(chat_document)
 
-    # Emit the message to both sender and receiver in the room
+    # Broadcast the message to the room
     emit('receive_message', {
         "sender": sender,
         "message": message,
         "timestamp": chat_document['timestamp'].strftime("%Y-%m-%d %H:%M:%S")
     }, room=room)
+
+
+
 
 
 @socketio.on('read_receipt')

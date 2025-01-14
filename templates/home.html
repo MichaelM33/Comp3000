@@ -22,6 +22,7 @@
         <!-- Sidebar for contacts -->
         <div class="chat-sidebar">
             <!-- Profile Section -->
+        <a href="{{ url_for('profile') }}" class="profile-section-link">
             <div class="profile-section">
                 {% if profile_pic_id %}
                 <img src="{{ url_for('profile_pic', pic_id=profile_pic_id) }}" alt="Your profile picture" class="profile-icon">
@@ -30,20 +31,31 @@
                 {% endif %}
                 <span class="profile-name">{{ username }}</span>
             </div>
+        </a>
 
             <h2>Contacts</h2>
             <ul>
                 {% for contact in contacts %}
-                <li class="contact-item">
-                    {% if contact.profile_pic_id %}
-                    <img src="{{ url_for('profile_pic', pic_id=contact.profile_pic_id) }}" alt="{{ contact.username }}'s profile picture" class="contact-profile-pic">
-                    {% else %}
-                    <img src="{{ url_for('static', filename='default.jpg') }}" alt="Default profile picture" class="contact-profile-pic">
-                    {% endif %}
-                    <a href="#" class="chat-link" data-username="{{ contact.username }}">{{ contact.username }}</a>
+                <li class="contact-item" data-username="{{ contact.username }}">
+                    <!-- Profile Picture and Name -->
+                    <div class="contact-info">
+                        {% if contact.profile_pic_id %}
+                        <img src="{{ url_for('profile_pic', pic_id=contact.profile_pic_id) }}" alt="{{ contact.username }}'s profile picture" class="contact-profile-pic">
+                        {% else %}
+                        <img src="{{ url_for('static', filename='default.jpg') }}" alt="Default profile picture" class="contact-profile-pic">
+                        {% endif %}
+                        <div class="contact-details">
+                            <span class="chat-link">{{ contact.username }}</span>
+                            <span class="last-message">{{ contact.last_message }}</span>
+                        </div>
+                    </div>
+            
+                    <!-- Profile Button -->
+                    <a href="{{ url_for('view_profile', username=contact.username) }}" class="profile-btn">Profile</a>
                 </li>
                 {% endfor %}
             </ul>
+            
         </div>
 
         <!-- Main chat section -->
@@ -62,7 +74,6 @@
 
     <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
     <script>
-        const chatLinks = document.querySelectorAll('.chat-link');
         const chatContent = document.getElementById('chat-content');
         const messageForm = document.getElementById('message-form');
         const messageInput = document.getElementById('message-input');
@@ -88,12 +99,14 @@
                 .catch(err => console.error('Error loading chat:', err));
         }
 
-        // Attach click event listeners to chat links
-        chatLinks.forEach(link => {
-            link.addEventListener('click', function (e) {
-                e.preventDefault();
+        // Handle click event for loading chat when a contact item is clicked
+        document.querySelectorAll('.contact-item').forEach(item => {
+            item.addEventListener('click', function (e) {
+                // Prevent chat loading if the Profile button is clicked
+                if (e.target.classList.contains('profile-btn')) return;
+
                 const username = this.dataset.username;
-                loadChat(username);
+                loadChat(username);  // Call the function to load the chat
             });
         });
 
@@ -141,6 +154,28 @@
                 scrollToBottom();
             }
         });
+
+      // Handle toxic message warning
+socket.on('toxic_warning', function (data) {
+    const warningBox = document.createElement('div');
+    warningBox.classList.add('warning-box');
+    warningBox.innerText = data.warning;
+    messageForm.insertBefore(warningBox, messageInput);
+
+    setTimeout(() => warningBox.remove(), 3000);  // Remove the warning after 3 seconds
+
+    // Remove the last appended message from the chat history
+    removeLastMessage();
+});
+
+// Function to remove the last appended message
+function removeLastMessage() {
+    const chatHistory = document.querySelector('.chat-history');
+    if (chatHistory && chatHistory.lastElementChild) {
+        chatHistory.removeChild(chatHistory.lastElementChild);
+    }
+}
+
     </script>
 </body>
 </html>
