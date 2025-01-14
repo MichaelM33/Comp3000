@@ -47,3 +47,7 @@ This project is a **real-time chat application** built using **Python Flask**, *
 
 ---
 
+
+### Contributors:
+- [Michael McDonald](https://github.com/MichaelM33)
+
