@@ -1,19 +1,49 @@
 # Real-Time Chat Application
 
-This project is a real-time chat application built using **Python Flask**, **Socket.IO**, and **MongoDB**. It allows users to register, log in, add contacts, send messages in real time, and manage contact requests.
+This project is a **real-time chat application** built using **Python Flask**, **Socket.IO**, and **MongoDB**. It allows users to communicate in real time, manage contacts, and personalize their profiles with profile pictures.
+
+---
 
 ## Features
 
-- **User Authentication**: Secure registration and login using hashed passwords.
-- **Real-Time Messaging**: Powered by Flask-SocketIO for instant communication.
-- **Contact Management**: Add, search for, and accept contact requests.
-- **Profile Pictures**: Users can upload and update profile pictures.
-- **Status Tracking**: Users' online/offline statuses are displayed.
-- **Dynamic UI**: HTML, CSS, and JavaScript frontend with a responsive design.
+### 1. **User Authentication**
+- Secure user registration and login using **hashed passwords**.
+- Session management for authenticated access.
+
+### 2. **Real-Time Messaging**
+- Instant messaging powered by **Flask-SocketIO**.
+- Messages are sent and received without refreshing the page.
+- Offensive language detection with automatic message removal and warnings.
+
+### 3. **Contact Management**
+- Add new contacts by searching for their username.
+- Send and receive contact requests.
+- Accept or reject contact requests.
+
+### 4. **Profile Management**
+- Users can upload and update **profile pictures**.
+- View profile pages of contacts (only accessible if both users are friends).
+
+### 5. **Status Tracking**
+- Online/offline statuses are displayed for contacts in real time.
+
+### 6. **Dynamic UI**
+- Responsive design using **HTML**, **CSS**, and **JavaScript**.
+- Optimized for both **desktop** and **mobile browsers**.
+
+---
 
 ## Technologies Used
 
-- **Backend**: Python Flask, Flask-SocketIO, MongoDB, GridFS for profile picture storage.
-- **Frontend**: HTML, CSS, JavaScript.
-- **Database**: MongoDB with collections for users, chats, and contact requests.
+### **Backend**
+- **Python Flask**: Core web framework.
+- **Flask-SocketIO**: For real-time communication via WebSockets.
+- **MongoDB**: Database for storing users, messages, and contact requests.
+- **GridFS**: Used for storing profile pictures.
+
+### **Frontend**
+- **HTML**, **CSS**, **JavaScript**: For the user interface.
+- **Responsive Design**: Ensures the app works well on both desktop and mobile devices.
+
+---
 
