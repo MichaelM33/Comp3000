@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App - Mobile Requests</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='mobile.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>Contact Requests</h2>
+
+        {% if requests %}
+        <ul class="requests-list">
+            {% for request in requests %}
+            <li class="request-item">
+                {% if request.profile_pic_id %}
+                <img src="{{ url_for('profile_pic', pic_id=request.profile_pic_id) }}" alt="Profile Picture" class="request-profile-pic">
+                {% else %}
+                <img src="{{ url_for('static', filename='default.jpg') }}" alt="Default Profile Picture" class="request-profile-pic">
+                {% endif %}
+                <span>{{ request.username }}</span>
+                <form method="POST" action="{{ url_for('accept_request', requester_username=request.username) }}">
+                    <button type="submit">Accept</button>
+                </form>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>No pending contact requests.</p>
+        {% endif %}
+
+        <a href="{{ url_for('mobile_home') }}" class="back-btn">← Back to Home</a>
+    </div>
+</body>
+</html>

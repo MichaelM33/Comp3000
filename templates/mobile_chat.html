@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with {{ contact_username }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='mobile_chat.css') }}">
+</head>
+<body>
+        <!-- Chat Header -->
+    <div class="chat-header">
+        <a href="{{ url_for('mobile_home') }}" class="back-btn">← Back</a>
+        <h2>
+            <a href="{{ url_for('mobile_profile_view', username=contact_username) }}" class="profile-link">
+                {{ contact_username }}
+            </a>
+        </h2>
+    </div>
+
+    <!-- Chat Messages -->
+    <div class="chat-history" id="chat-history">
+        {% for chat in chat_history %}
+        <div class="chat-message {% if chat.sender == session['username'] %}sent{% else %}received{% endif %}">
+            <p>{{ chat.message }}</p>
+            <span class="timestamp">{{ chat.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</span>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Chat Input -->
+    <div class="chat-form-container">
+        <form id="message-form">
+            <input type="text" id="message-input" placeholder="Type your message..." required>
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+    <script>
+        const socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+        const chatHistory = document.getElementById('chat-history');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+        const contactUsername = "{{ contact_username }}";
+
+        // Join the chat room
+        socket.emit('join_room', { contact_username: contactUsername });
+
+        // Handle message form submission
+        messageForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+
+            if (message) {
+                socket.emit('send_message', {
+                    receiver: contactUsername,
+                    message: message
+                });
+                messageInput.value = '';  // Clear the input field
+                appendMessage(message, 'sent');
+                scrollToBottom();
+            }
+        });
+
+        // Append a message to the chat history
+        function appendMessage(message, type) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('chat-message', type);
+            messageElement.innerHTML = `
+                <p>${message}</p>
+                <span class="timestamp">${new Date().toLocaleString()}</span>
+            `;
+            chatHistory.appendChild(messageElement);
+        }
+
+        // Scroll to the bottom of the chat history
+        function scrollToBottom() {
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        // Handle incoming messages
+        socket.on('receive_message', function (data) {
+            if (data.sender === contactUsername) {
+                appendMessage(data.message, 'received');
+                scrollToBottom();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -11,13 +11,13 @@ import urllib.parse
 from datetime import datetime, timedelta
 import joblib
 
+# Load environment variables from .env file
+load_dotenv()
 
 # Initialize Flask app
 app = Flask(__name__)
-app.secret_key = os.urandom(32)  # Strong random secret key
+app.secret_key = os.getenv("SECRET_KEY")  
 
-# Load environment variables from .env file
-load_dotenv()
 
 # MongoDB credentials and setup
 username = os.getenv("MONGODB_USERNAME")
@@ -48,7 +48,7 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
+        username = request.form['username'].strip().lower()  # Convert to lowercase
         password = request.form['password']
 
         if not all([username, password]):
@@ -79,10 +79,11 @@ def login():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
+        display_name = request.form['display_name']
+        username = request.form['username'].strip().lower()  # Convert to lowercase
         password = request.form['password']
 
-        if not all([username, password]):
+        if not all([display_name, username, password]):
             flash('Missing required fields!', 'danger')
             return redirect(url_for('register'))
 
@@ -94,6 +95,7 @@ def register():
 
         hashed_password = generate_password_hash(password)
         user_document = {
+            "display_name": display_name,
             "username": username,
             "password": hashed_password,
             "status": "online",
@@ -131,9 +133,9 @@ def home():
 
     for contact_username in contact_usernames:
         contact = users_collection.find_one(
-            {"username": contact_username},
-            {"_id": 0, "username": 1, "status": 1, "profile_pic_id": 1}
-        )
+        {"username": contact_username},
+        {"_id": 0, "username": 1, "display_name": 1, "status": 1, "profile_pic_id": 1}
+    )
         if contact:
             # Retrieve the last message exchanged with this contact
             last_message = chats_collection.find_one(
@@ -190,23 +192,19 @@ def view_profile(username):
 
     current_user = session['username']
 
-    # Find the profile user by username
-    user = users_collection.find_one({"username": username}, {"_id": 0, "username": 1, "profile_pic_id": 1, "created_at": 1})
+    # Find the user by username and retrieve display name and profile picture
+    user = users_collection.find_one(
+        {"username": username},
+        {"_id": 0, "username": 1, "display_name": 1, "profile_pic_id": 1, "created_at": 1}
+    )
 
     if user is None:
         flash(f"User '{username}' not found.", 'danger')
         return redirect(url_for('home'))
 
-    # Check if the current user is friends with the profile user
-    is_friend = users_collection.find_one({"username": current_user, "contacts": username}) is not None
-
-    if not is_friend and current_user != username:  # Allow self-profile access
-        flash("You can only view profiles of your friends.", 'danger')
-        return redirect(url_for('home'))
-
     profile_pic_id = user.get("profile_pic_id")
 
-    return render_template('profile_view.html', user=user, profile_pic_id=profile_pic_id, is_contact=is_friend)
+    return render_template('profile_view.html', user=user, profile_pic_id=profile_pic_id)
 
 
 
@@ -230,6 +228,9 @@ def logout():
         )
     session.pop('username', None)
     flash('You have been logged out.', 'info')
+    # Detect if the request comes from a mobile route
+    if request.referrer and '/mobile' in request.referrer:
+        return redirect(url_for('mobile_login'))
     return redirect(url_for('login'))
 
 
@@ -262,10 +263,14 @@ def send_request(contact_username):
 
     if contact_username == current_user:
         flash('You cannot send a contact request to yourself!', 'danger')
+        if request.referrer and '/mobile' in request.referrer:
+            return redirect(url_for('mobile_search'))
         return redirect(url_for('search'))
 
     if contact_username in users_collection.find_one({"username": current_user}).get("contacts", []):
         flash('This user is already in your contacts!', 'info')
+        if request.referrer and '/mobile' in request.referrer:
+            return redirect(url_for('mobile_search'))
         return redirect(url_for('search'))
 
     users_collection.update_one(
@@ -274,6 +279,9 @@ def send_request(contact_username):
     )
 
     flash('Contact request sent!', 'success')
+    # Detect if the request comes from a mobile route
+    if request.referrer and '/mobile' in request.referrer:
+        return redirect(url_for('mobile_search'))
     return redirect(url_for('search'))
 
 @app.route('/requests')
@@ -318,6 +326,9 @@ def accept_request(requester_username):
     )
 
     flash(f'You are now contacts with {requester_username}!', 'success')
+    # Detect if the request comes from a mobile route
+    if request.referrer and '/mobile' in request.referrer:
+        return redirect(url_for('mobile_requests'))
     return redirect(url_for('requests'))
 
 
@@ -350,6 +361,18 @@ def chat(contact_username):
 
     current_user = session['username']
 
+    # Retrieve contact's display name and profile picture ID
+    contact = users_collection.find_one(
+        {"username": contact_username},
+        {"_id": 0, "username": 1, "display_name": 1, "profile_pic_id": 1}
+    )
+
+    if contact is None:
+        flash(f"User '{contact_username}' not found.", 'danger')
+        return redirect(url_for('home'))
+
+    contact_profile_pic_id = contact.get("profile_pic_id")
+
     # Retrieve chat history
     chat_history = list(chats_collection.find({
         "$or": [
@@ -358,22 +381,16 @@ def chat(contact_username):
         ]
     }).sort("timestamp", 1))
 
-    # Retrieve the contact's profile picture ID
-    contact = users_collection.find_one({"username": contact_username}, {"profile_pic_id": 1})
-    contact_profile_pic_id = contact.get("profile_pic_id", None)
-
     # Mark all unread messages as read
     chats_collection.update_many(
         {"sender": contact_username, "receiver": current_user, "read": False},
         {"$set": {"read": True}}
     )
 
-    return render_template('chat_content.html', 
-                           contact_username=contact_username, 
-                           contact_profile_pic_id=contact_profile_pic_id, 
+    return render_template('chat_content.html',
+                           contact=contact,
+                           contact_profile_pic_id=contact_profile_pic_id,
                            chat_history=chat_history)
-
-
 
 
 
@@ -387,14 +404,13 @@ def settings():
     user = users_collection.find_one({"username": username})
 
     if request.method == 'POST':
-        new_username = request.form.get('new_username')
+        new_display_name = request.form.get('new_display_name')
         new_password = request.form.get('new_password')
 
-        if new_username:
-            users_collection.update_one({"username": username}, {"$set": {"username": new_username}})
-            session['username'] = new_username
-            flash('Username updated successfully!', 'success')
-        
+        if new_display_name:
+            users_collection.update_one({"username": username}, {"$set": {"display_name": new_display_name}})
+            flash('Display name updated successfully!', 'success')
+
         if new_password:
             hashed_password = generate_password_hash(new_password)
             users_collection.update_one({"username": username}, {"$set": {"password": hashed_password}})
@@ -402,7 +418,205 @@ def settings():
 
         return redirect(url_for('settings'))
 
-    return render_template('settings.html', username=username)
+    return render_template('settings.html', display_name=user.get('display_name'))
+
+
+
+#-=-=-=-=-=-=--------------------------------------
+#-=-=-=-=-=-=--------------------------------------
+#-=-=-=-=-=-=--------------------------------------
+#-=-=-=-=-=-=--------------------------------------
+#MOBILE SECTION
+
+
+@app.route('/mobile/chat/<string:contact_username>')
+def mobile_chat(contact_username):
+    if 'username' not in session:
+        return redirect(url_for('mobile_login'))
+
+    current_user = session['username']
+
+    # Retrieve chat history from MongoDB
+    chat_history = list(chats_collection.find({
+        "$or": [
+            {"sender": current_user, "receiver": contact_username},
+            {"sender": contact_username, "receiver": current_user}
+        ]
+    }).sort("timestamp", 1))
+
+    # Mark all unread messages as read
+    chats_collection.update_many(
+        {"sender": contact_username, "receiver": current_user, "read": False},
+        {"$set": {"read": True}}
+    )
+
+    return render_template('mobile_chat.html', contact_username=contact_username, chat_history=chat_history)
+
+
+
+
+@app.route('/mobile/home')
+def mobile_home():
+    if 'username' not in session:
+        return redirect(url_for('mobile_login'))
+
+    username = session['username']
+    user = users_collection.find_one({"username": username})
+
+    if not user:
+        flash('Session invalid. Please log in again.', 'danger')
+        return redirect(url_for('mobile_login'))
+
+    profile_pic_id = user.get("profile_pic_id", None)
+    contacts = user.get("contacts", [])
+
+    # Fetch contact details
+    contact_details = []
+    for contact in contacts:
+        contact_data = users_collection.find_one(
+            {"username": contact},
+            {"_id": 0, "username": 1, "profile_pic_id": 1}
+        )
+        if contact_data:
+            contact_details.append(contact_data)
+
+    return render_template('mobile_home.html', username=username, profile_pic_id=profile_pic_id, contacts=contact_details)
+
+
+
+@app.route('/mobile/login', methods=['GET', 'POST'])
+def mobile_login():
+    if request.method == 'POST':
+        username = request.form['username'].strip().lower()  # Convert to lowercase
+        password = request.form['password']
+
+        if not all([username, password]):
+            flash('Missing required fields!', 'danger')
+            return redirect(url_for('mobile_login'))
+
+        user = users_collection.find_one({"username": username})
+
+        if user and check_password_hash(user['password'], password):
+            session['username'] = username
+            flash('Login successful!', 'success')
+            return redirect(url_for('mobile_home'))
+        else:
+            flash('Invalid username or password!', 'danger')
+            return redirect(url_for('mobile_login'))
+
+    return render_template('mobile_login.html')
+
+@app.route('/mobile/profile', methods=['GET', 'POST'])
+def mobile_profile():
+    if 'username' not in session:
+        return redirect(url_for('mobile_login'))
+
+    username = session['username']
+
+    if request.method == 'POST':
+        if 'profile_pic' in request.files:
+            profile_pic = request.files['profile_pic']
+
+            if profile_pic.filename == '' or not allowed_file(profile_pic.filename):
+                flash('Invalid file type or no file selected!', 'danger')
+                return redirect(url_for('mobile_profile'))
+
+            user = users_collection.find_one({"username": username})
+            old_pic_id = user.get("profile_pic_id")
+            if old_pic_id:
+                fs.delete(ObjectId(old_pic_id))
+
+            profile_pic_id = fs.put(profile_pic, filename=f"{username}_profile_pic")
+            users_collection.update_one(
+                {"username": username},
+                {"$set": {"profile_pic_id": str(profile_pic_id)}}
+            )
+
+            flash('Profile picture updated successfully!', 'success')
+
+    user = users_collection.find_one({"username": username})
+    profile_pic_id = user.get("profile_pic_id", None)
+
+    return render_template('mobile_profile.html', username=username, profile_pic_id=profile_pic_id)
+
+@app.route('/mobile/search', methods=['GET', 'POST'])
+def mobile_search():
+    if 'username' not in session:
+        return redirect(url_for('mobile_login'))
+
+    if request.method == 'POST':
+        search_username = request.form['search_username']
+        user = users_collection.find_one(
+            {"username": search_username},
+            {"_id": 0, "username": 1, "profile_pic_id": 1}
+        )
+
+        if user:
+            return render_template('mobile_search.html', result=user)
+        else:
+            flash('User not found!', 'danger')
+
+    return render_template('mobile_search.html')
+
+@app.route('/mobile/requests')
+def mobile_requests():
+    if 'username' not in session:
+        return redirect(url_for('mobile_login'))
+
+    username = session['username']
+    user = users_collection.find_one({"username": username})
+
+    if not user:
+        flash('Session invalid. Please log in again.', 'danger')
+        return redirect(url_for('mobile_login'))
+
+    pending_requests = user.get("pending_requests", [])
+    requests_with_pics = []
+
+    for requester in pending_requests:
+        contact = users_collection.find_one(
+            {"username": requester},
+            {"_id": 0, "username": 1, "profile_pic_id": 1}
+        )
+        if contact:
+            requests_with_pics.append(contact)
+
+    return render_template('mobile_requests.html', requests=requests_with_pics)
+
+@app.route('/mobile/profile/<string:username>')
+def mobile_profile_view(username):
+    if 'username' not in session:
+        return redirect(url_for('mobile_login'))
+
+    # Fetch the user's profile from the database
+    user = users_collection.find_one({"username": username}, {"_id": 0, "username": 1, "profile_pic_id": 1})
+
+    if not user:
+        flash('User not found!', 'danger')
+        return redirect(url_for('mobile_home'))
+
+    profile_pic_id = user.get("profile_pic_id", None)
+
+    return render_template('mobile_profile_view.html', username=username, profile_pic_id=profile_pic_id)
+
+
+@app.route('/mobile/logout')
+def mobile_logout():
+    session.pop('username', None)
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('mobile_login'))
+
+#MOBILE SECTION
+#-=-=-=-=-=-=--------------------------------------
+#-=-=-=-=-=-=--------------------------------------
+#-=-=-=-=-=-=--------------------------------------
+#-=-=-=-=-=-=--------------------------------------
+
+
+
+
+
+
 
 
 from flask_socketio import SocketIO, emit, join_room, leave_room
@@ -454,13 +668,14 @@ def handle_send_message(data):
 
     # Save the message to the database
     chat_document = {
-        "sender": sender,
-        "receiver": receiver,
-        "message": message,
-        "timestamp": datetime.utcnow(),
-        "delivered": True,
-        "read": False
-    }
+    "sender": sender,
+    "receiver": receiver,
+    "message": message,
+    "display_name": users_collection.find_one({"username": sender})["display_name"],
+    "timestamp": datetime.utcnow(),
+    "delivered": True,
+    "read": False
+}
     chats_collection.insert_one(chat_document)
 
     # Broadcast the message to the room

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App - Mobile</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='mobile.css') }}">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <ul>
+            <li><a href="{{ url_for('mobile_home') }}">Home</a></li>
+            <li><a href="{{ url_for('mobile_requests') }}">Requests</a></li>
+            <li><a href="{{ url_for('mobile_search') }}">Search</a></li>
+            <li><a href="{{ url_for('mobile_profile') }}">Profile</a></li>
+            <li><a href="{{ url_for('mobile_logout') }}">Logout</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <h2>Contacts</h2>
+        <ul class="contact-list">
+            {% for contact in contacts %}
+            <li class="contact-item">
+                <a href="{{ url_for('mobile_chat', contact_username=contact.username) }}">
+                    {% if contact.profile_pic_id %}
+                    <img src="{{ url_for('profile_pic', pic_id=contact.profile_pic_id) }}" alt="{{ contact.username }}'s profile picture" class="contact-profile-pic">
+                    {% else %}
+                    <img src="{{ url_for('static', filename='default.jpg') }}" alt="Default profile picture" class="contact-profile-pic">
+                    {% endif %}
+                    <span class="contact-name">{{ contact.username }}</span>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>

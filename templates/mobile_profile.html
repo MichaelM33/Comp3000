@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App - Mobile Profile</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='mobile.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>Profile</h2>
+
+        <!-- Display profile picture -->
+        {% if profile_pic_id %}
+        <img src="{{ url_for('profile_pic', pic_id=profile_pic_id) }}" alt="Profile Picture" class="profile-pic">
+        {% else %}
+        <img src="{{ url_for('static', filename='default.jpg') }}" alt="Default Profile Picture" class="profile-pic">
+        {% endif %}
+
+        <!-- Username -->
+        <p><strong>Username:</strong> {{ username }}</p>
+
+        <!-- Upload Profile Picture -->
+        <form method="POST" enctype="multipart/form-data">
+            <label for="profile_pic">Change Profile Picture:</label>
+            <input type="file" name="profile_pic" required>
+            <button type="submit">Upload</button>
+        </form>
+
+        <a href="{{ url_for('mobile_home') }}" class="back-btn">← Back to Home</a>
+    </div>
+</body>
+</html>

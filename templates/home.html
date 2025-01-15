@@ -37,20 +37,18 @@
             <ul>
                 {% for contact in contacts %}
                 <li class="contact-item" data-username="{{ contact.username }}">
-                    <!-- Profile Picture and Name -->
                     <div class="contact-info">
                         {% if contact.profile_pic_id %}
-                        <img src="{{ url_for('profile_pic', pic_id=contact.profile_pic_id) }}" alt="{{ contact.username }}'s profile picture" class="contact-profile-pic">
+                        <img src="{{ url_for('profile_pic', pic_id=contact.profile_pic_id) }}" alt="{{ contact.display_name }}'s profile picture" class="contact-profile-pic">
                         {% else %}
                         <img src="{{ url_for('static', filename='default.jpg') }}" alt="Default profile picture" class="contact-profile-pic">
                         {% endif %}
                         <div class="contact-details">
-                            <span class="chat-link">{{ contact.username }}</span>
+                            <span class="chat-link">{{ contact.display_name }}</span>
                             <span class="last-message">{{ contact.last_message }}</span>
                         </div>
                     </div>
             
-                    <!-- Profile Button -->
                     <a href="{{ url_for('view_profile', username=contact.username) }}" class="profile-btn">Profile</a>
                 </li>
                 {% endfor %}
@@ -154,6 +152,8 @@
                 scrollToBottom();
             }
         });
+
+        
 
       // Handle toxic message warning
 socket.on('toxic_warning', function (data) {

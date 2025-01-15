@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ username }}'s Profile</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='mobile.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>{{ username }}'s Profile</h2>
+
+        <!-- Display profile picture -->
+        {% if profile_pic_id %}
+        <img src="{{ url_for('profile_pic', pic_id=profile_pic_id) }}" alt="{{ username }}'s profile picture" class="profile-pic">
+        {% else %}
+        <img src="{{ url_for('static', filename='default.jpg') }}" alt="Default profile picture" class="profile-pic">
+        {% endif %}
+
+        <a href="{{ url_for('mobile_chat', contact_username=username) }}" class="back-btn">← Back to Chat</a>
+    </div>
+</body>
+</html>
