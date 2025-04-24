@@ -10,6 +10,7 @@ from bson.objectid import ObjectId
 import urllib.parse
 from datetime import datetime, timedelta
 import joblib
+from flask import Flask, send_from_directory
 
 # Load environment variables from .env file
 load_dotenv()
@@ -128,6 +129,7 @@ def home():
         return redirect(url_for('login'))
 
     profile_pic_id = user.get("profile_pic_id")
+    display_name = user.get("display_name")
     contact_usernames = user.get("contacts", [])
     contacts = []
 
@@ -149,7 +151,7 @@ def home():
             contact['last_message'] = last_message['message'] if last_message else "No messages yet"
             contacts.append(contact)
 
-    return render_template('home.html', username=username, profile_pic_id=profile_pic_id, contacts=contacts)
+    return render_template('home.html', username=username, profile_pic_id=profile_pic_id, contacts=contacts, display_name=display_name)
 
 
 @app.route('/profile', methods=['GET', 'POST'])
@@ -423,11 +425,8 @@ def settings():
 
 
 #-=-=-=-=-=-=--------------------------------------
-#-=-=-=-=-=-=--------------------------------------
-#-=-=-=-=-=-=--------------------------------------
-#-=-=-=-=-=-=--------------------------------------
-#MOBILE SECTION
-
+#MOBILE SECTION------------------------------------
+#-=-=-=-=-=-=-------------------------------------V
 
 @app.route('/mobile/chat/<string:contact_username>')
 def mobile_chat(contact_username):
@@ -606,10 +605,8 @@ def mobile_logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('mobile_login'))
 
-#MOBILE SECTION
-#-=-=-=-=-=-=--------------------------------------
-#-=-=-=-=-=-=--------------------------------------
-#-=-=-=-=-=-=--------------------------------------
+#-=-=-=-=-=-=-------------------------------------^
+#MOBILE SECTION------------------------------------
 #-=-=-=-=-=-=--------------------------------------
 
 
@@ -647,6 +644,34 @@ def handle_join_room(data):
 model = joblib.load('bad_word_detector_model.pkl')
 tfidf_vectorizer = joblib.load('tfidf_vectorizer.pkl')
 
+#OPEN AI SETECTION OF -==-=--==-----------------------------
+
+import openai
+API_KEY = os.getenv("API_KEY")
+
+openai.api_key = API_KEY 
+
+def is_toxic_message(message):
+    """Checks if a message is toxic using the ChatGPT API."""
+    prompt = f"Determine if the following message is toxic and safe for kids. Respond with 'True' for toxic and 'False' for non-toxic:\n\nMessage: \"{message}\""
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0
+        )
+        answer = response["choices"][0]["message"]["content"].strip().lower()
+        return answer == "true"
+    
+    except openai.error.OpenAIError as e:
+        print(f"API Error: {e}")
+        return None
+    except Exception as e:
+        print(f"Unexpected Error: {e}")
+        return None
+
+#OPEN AI SETECTION OF -==-=--==-----------------------------
 
 
 @socketio.on('send_message')
@@ -655,13 +680,22 @@ def handle_send_message(data):
     receiver = data['receiver']
     message = data['message']
 
-    # Filter message using the model
-    message_tfidf = tfidf_vectorizer.transform([message])
-    prediction = model.predict(message_tfidf)[0]
+    
+    #message_tfidf = tfidf_vectorizer.transform([message])
+    #prediction = model.predict(message_tfidf)[0]
+    #if prediction == 1:  # Toxic message detected
+        #emit('toxic_warning', {'warning': 'Your message may be considered toxic. Please rephrase.'}, room=request.sid)
+        #return  # Do not broadcast the message
+    
 
-    if prediction == 1:  # Toxic message detected
+
+    prediction = is_toxic_message(message)
+    print(f"Prediction: {prediction}, Message: {message}")
+    if prediction == True:
         emit('toxic_warning', {'warning': 'Your message may be considered toxic. Please rephrase.'}, room=request.sid)
         return  # Do not broadcast the message
+
+
 
     # Create a unique room name by combining usernames
     room = f"chat_{min(sender, receiver)}_{max(sender, receiver)}"
@@ -678,11 +712,16 @@ def handle_send_message(data):
 }
     chats_collection.insert_one(chat_document)
 
+    user = users_collection.find_one({"username": sender}, {"_id": 0, "username": 1, "profile_pic_id": 1})
+
+    profile_pic_id = user.get("profile_pic_id", None)
+
     # Broadcast the message to the room
     emit('receive_message', {
         "sender": sender,
         "message": message,
-        "timestamp": chat_document['timestamp'].strftime("%Y-%m-%d %H:%M:%S")
+        "timestamp": chat_document['timestamp'].strftime("%Y-%m-%d %H:%M:%S"),
+        "profile_pic_id": profile_pic_id
     }, room=room)
 
 
@@ -710,7 +749,11 @@ def handle_disconnect():
     print(f"{username} has disconnected")
 
 
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory('static', 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
 
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5001, debug=True)

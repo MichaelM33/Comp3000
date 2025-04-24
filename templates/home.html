@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
+
     <title>Chat App - Home</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
+    <script src="{{ url_for('static', filename='particles.js') }}"></script>
 </head>
 <body>
     <!-- Navigation Bar -->
@@ -29,7 +33,7 @@
                 {% else %}
                 <img src="{{ url_for('static', filename='default.jpg') }}" alt="Default profile picture" class="profile-icon">
                 {% endif %}
-                <span class="profile-name">{{ username }}</span>
+                <span class="profile-name">{{ display_name }}</span>
             </div>
         </a>
 
@@ -127,17 +131,32 @@
             }
         });
 
-        // Function to append a new message to the chat history
-        function appendMessage(message, type) {
-            const chatHistory = document.querySelector('.chat-history');
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('chat-message', type);
-            messageElement.innerHTML = `
-                <p>${message}</p>
-                <span class="timestamp">${new Date().toLocaleString()}</span>
-            `;
-            chatHistory.appendChild(messageElement);
+        function appendMessage(message, type, profilePicUrl = null) {
+        const chatHistory = document.querySelector('.chat-history');
+        const messageContainer = document.createElement('div');
+        messageContainer.classList.add('chat-message-container', type);
+
+        // If the message is received and has a profile picture, include it
+        if (type === "received" && profilePicUrl) {
+            const profilePic = document.createElement('img');
+            profilePic.src = profilePicUrl;
+            profilePic.alt = "Profile picture";
+            profilePic.classList.add('chat-profile-pic');
+            messageContainer.appendChild(profilePic);
         }
+
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('chat-message', type);
+        messageElement.innerHTML = `
+            <p>${message}</p>
+            <!-- <span class="timestamp">${new Date().toLocaleString()}</span> --!>
+        `;
+
+        messageContainer.appendChild(messageElement);
+        chatHistory.appendChild(messageContainer);
+        scrollToBottom();
+    }
+
 
         // Function to scroll chat to the bottom
         function scrollToBottom() {
@@ -148,12 +167,18 @@
         // Handle incoming messages via WebSocket
         socket.on('receive_message', function (data) {
             if (data.sender === currentChatUsername) {
-                appendMessage(data.message, 'received');
+                // Construct the profile picture URL (modify this based on your setup)
+                const profilePicUrl = data.profile_pic_id ? 
+                `/profile_pic/${data.profile_pic_id}` : 
+                '/static/default.jpg';
+
+
+                console.log(data)
+                appendMessage(data.message, 'received', profilePicUrl);
                 scrollToBottom();
             }
         });
-
-        
+                
 
       // Handle toxic message warning
 socket.on('toxic_warning', function (data) {

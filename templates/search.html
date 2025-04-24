@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search Users</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='search.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
 </head>
 <body>
     <div class="container">
@@ -30,7 +31,9 @@
                 <form method="POST" action="{{ url_for('send_request', contact_username=result.username) }}">
                     <button type="submit">Send Contact Request</button>
                 </form>
+                
             </div>
+            <p><a href="{{ url_for('home') }}">Back to Home</a></p>
         {% else %}
         <p><a href="{{ url_for('home') }}">Back to Home</a></p>
         {% endif %}

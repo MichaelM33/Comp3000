@@ -1,21 +1,27 @@
+/* search.css */
 body {
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #121212;
     color: #e1e1e1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
 }
 
 .container {
     width: 80%;
+    max-width: 500px; /* Control for large screens */
     margin: 50px auto;
     padding: 20px;
     border-radius: 10px;
     background-color: #1e1e1e;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    text-align: center;
 }
 
 h1 {
-    text-align: center;
     margin-bottom: 20px;
     color: #ffffff;
 }
@@ -23,8 +29,8 @@ h1 {
 form {
     display: flex;
     justify-content: center;
-    margin-bottom: 20px;
     gap: 10px;
+    margin-bottom: 20px;
 }
 
 input[type="text"] {
@@ -42,18 +48,45 @@ input[type="text"]:focus {
     box-shadow: 0 0 5px rgba(0, 122, 255, 0.5);
 }
 
-button {
+button, .result button {
     padding: 12px 20px;
     border: none;
-    background-color: #007aff;
+    background-color: #28a745; /* Green as primary action color */
     color: white;
-    border-radius: 0 8px 8px 0;
+    border-radius: 8px;
     cursor: pointer;
     transition: background-color 0.3s;
 }
 
-button:hover {
-    background-color: #005bb5;
+button:hover, .result button:hover {
+    background-color: #218838; /* Darker green on hover */
+}
+
+a {
+    display: inline-block;
+    margin-top: 20px;
+    text-decoration: none;
+    color: #00cc66; /* Stylish green color for links */
+    font-size: 1rem;
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    color: #00b4d8; /* Lighter blue on hover */
+}
+
+.back-to-home {
+    color: white;
+    padding: 8px 16px;
+    background-color: #28a745; /* Consistent green background */
+    border: none;
+    border-radius: 8px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.back-to-home:hover {
+    background-color: #218838; /* Darker green on hover */
+    color: #121212; /* Text color changes for readability */
 }
 
 .result {
@@ -106,18 +139,4 @@ button:hover {
 .contact-item span, .result p {
     font-size: 1.2em;
     font-weight: bold;
-}
-
-button {
-    padding: 8px 16px;
-    border: none;
-    background-color: #28a745;
-    color: white;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-button:hover {
-    background-color: #218838;
 }

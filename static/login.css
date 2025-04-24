@@ -1,66 +1,185 @@
-/* login.css (Dark Mode) */
+/* login.css (Enhanced Dark Mode) */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
 
 body {
     margin: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    background-color: #121212;
-    color: #e1e1e1;
+    min-height: 100vh;
+    background-color: #0a0a0a;
+    color: #f8f9fa;
+    overflow: hidden; /* Prevent scrollbars from dots */
 }
 
 .container {
-    width: 300px;
-    padding: 20px;
-    border-radius: 10px;
-    background-color: #1e1e1e;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    width: 500px;
+    padding: 2rem;
+    border-radius: 16px;
+    background: #1a1a1a;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+    transform: translateY(0);
+    animation: slideUp 0.6s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+@keyframes slideUp {
+    0% { transform: translateY(40px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
 }
 
-input[type="text"], input[type="password"] {
-    padding: 12px 15px;
-    border: 1px solid #333;
+h1 {
+    text-align: center;
+    margin: 0 0 2rem 0;
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    background: linear-gradient(45deg, #00ff88, #00b4d8);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: #adb5bd;
+    font-weight: 500;
+}
+
+input[type="text"],
+input[type="password"] {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid #2d2d2d;
     border-radius: 8px;
-    background-color: #2b2b2b;
-    color: #e1e1e1;
-    outline: none;
+    background-color: #252525;
+    color: #f8f9fa;
+    font-size: 1rem;
+    transition: all 0.3s ease;
 }
 
-input[type="text"]:focus, input[type="password"]:focus {
-    border-color: #007aff;
-    box-shadow: 0 0 5px rgba(0, 122, 255, 0.5);
+input[type="text"]:focus,
+input[type="password"]:focus {
+    border-color: #00cc66;
+    box-shadow: 0 0 0 3px rgba(0, 204, 102, 0.2);
+    background-color: #2a2a2a;
 }
 
 button {
-    padding: 12px;
+    width: 100%;
+    padding: 1rem;
     border: none;
     border-radius: 8px;
-    background-color: #007aff;
+    background: linear-gradient(135deg, #00cc66, #00b4d8);
     color: white;
+    font-weight: 600;
     cursor: pointer;
-    font-size: 1rem;
-    transition: background-color 0.3s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 button:hover {
-    background-color: #005bb5;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px rgba(0, 204, 102, 0.25);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+p {
+    text-align: center;
+    margin-top: 1.5rem;
+    color: #6c757d;
+    font-size: 0.9rem;
 }
 
 a {
-    margin-top: 10px;
-    text-align: center;
+    color: #00cc66;
     text-decoration: none;
-    color: #007aff;
+    font-weight: 500;
+    transition: color 0.2s ease;
 }
 
 a:hover {
-    text-decoration: underline;
+    color: #00b4d8;
+}
+
+/* Flash Messages */
+ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.5rem 0;
+}
+
+li {
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+}
+
+li:before {
+    content: "•";
+    margin-right: 0.5rem;
+    font-size: 1.4rem;
+}
+
+li.success {
+    background: rgba(0, 204, 102, 0.15);
+    border: 1px solid #00cc66;
+    color: #00cc66;
+}
+
+li.error {
+    background: rgba(220, 53, 69, 0.15);
+    border: 1px solid #dc3545;
+    color: #dc3545;
+}
+
+.particle {
+    position: fixed;
+    pointer-events: none;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    filter: blur(0.5px);
+    animation: float 40s linear infinite;
+    opacity: 0.8;
+    will-change: transform;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: 
+            translate3d(0, 0, 0)
+            scale(1);
+    }
+    25% {
+        transform: 
+            translate3d(calc(100vw * var(--x-mod)), calc(50vh * var(--y-mod)), 0)
+            scale(0.9);
+    }
+    50% {
+        transform: 
+            translate3d(calc(50vw * var(--x-mod)), calc(100vh * var(--y-mod)), 0)
+            scale(1.1);
+    }
+    75% {
+        transform: 
+            translate3d(calc(75vw * var(--x-mod)), calc(75vh * var(--y-mod)), 0)
+            scale(0.95);
+    }
 }

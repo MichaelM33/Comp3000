@@ -11,7 +11,7 @@
         {% endif %}
         <div class="chat-message {% if chat.sender == session['username'] %}sent{% else %}received{% endif %}">
             <p>{{ chat.message }}</p>
-            <span class="timestamp">{{ chat.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</span>
+            <!--<span class="timestamp">{{ chat.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</span>-->
         </div>
     </div>
     {% endfor %}
