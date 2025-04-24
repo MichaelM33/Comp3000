@@ -1,4 +1,4 @@
-# Real-Time Chat Application
+# Safe Chat Application
 
 This project is a **real-time chat application** built using **Python Flask**, **Socket.IO**, and **MongoDB**. It allows users to communicate in real time, manage contacts, and personalize their profiles with profile pictures.
 
